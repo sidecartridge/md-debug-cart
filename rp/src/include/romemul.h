@@ -37,4 +37,13 @@ void dma_irqHandlerAddress(void);
 void dma_setResponseCB(IRQInterceptionCallback responseCallback);
 int romemul_getLookupDataRomDmaChannel(void);
 
+/**
+ * @brief Disables the ROM emulator DMA channels and IRQ handler.
+ *
+ * Aborts and unclaims both DMA channels used by the ROM emulator and removes
+ * the DMA IRQ handler. Call this before switching to a different DMA mode
+ * (e.g. debug-cart capture mode).
+ */
+void romemul_disable(void);
+
 #endif  // ROMEMUL_H

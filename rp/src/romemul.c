@@ -241,6 +241,34 @@ int romemul_getLookupDataRomDmaChannel(void) {
   return lookupDataRomDmaChannel;
 }
 
+void romemul_disable(void) {
+  // Disable the DMA IRQ and remove handler before aborting channels
+  irq_set_enabled(DMA_IRQ_1, false);
+  IRQInterceptionCallback currentHandler =
+      (IRQInterceptionCallback)irq_get_exclusive_handler(DMA_IRQ_1);
+  if (currentHandler != NULL) {
+    irq_remove_handler(DMA_IRQ_1, currentHandler);
+  }
+
+  // Abort and unclaim the address-read DMA channel
+  if (readAddrRomDmaChannel >= 0) {
+    dma_channel_set_irq1_enabled(readAddrRomDmaChannel, false);
+    dma_channel_abort(readAddrRomDmaChannel);
+    dma_channel_unclaim(readAddrRomDmaChannel);
+    readAddrRomDmaChannel = -1;
+  }
+
+  // Abort and unclaim the lookup-data DMA channel
+  if (lookupDataRomDmaChannel >= 0) {
+    dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, false);
+    dma_channel_abort(lookupDataRomDmaChannel);
+    dma_channel_unclaim(lookupDataRomDmaChannel);
+    lookupDataRomDmaChannel = -1;
+  }
+
+  DPRINTF("ROM emulator DMA disabled.\n");
+}
+
 int init_romemul(IRQInterceptionCallback requestCallback,
                  IRQInterceptionCallback responseCallback,
                  bool copyFlashToRAM) {
