@@ -11,12 +11,8 @@
 
 #include "constants.h"
 #include "debug.h"
-#include "gconfig.h"
 #include "hardware/sync.h"
 #include "hardware/watchdog.h"
-#include "pico/multicore.h"
-#include "pico/stdlib.h"
-#include "settings.h"
 
 #define RESET_WATCHDOG_TIMEOUT 20  // 20 ms
 
@@ -60,18 +56,5 @@ static inline void reset_jump_to_booster(void) {
  * printed.
  */
 void reset_device();
-
-/**
- * @brief Reset the app and reentry in the main device app in flash.
- *       Erase the flash memory before rebooting
- *
- *
- * Use to reboot the device to a fabric configuration, it jumps to the start of
- * the Flash
- *
- * @note This function should not return. If it does, an error message is
- * printed.
- */
-void reset_deviceAndEraseFlash();
 
 #endif  // RESET_H

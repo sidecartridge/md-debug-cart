@@ -72,8 +72,6 @@
  #define SETTINGS_MAGICVERSION_KEY "MAGICVERSION"
  
  #define SETTINGS_FLASH_PAGE_SIZE 4096
- #define SETTINGS_DEFAULT_FLASH_SIZE 4096
- 
  #define SETTINGS_BASE_10 10
  #define SETTINGS_SHIFT_LEFT_16_BITS 16
  
@@ -138,16 +136,6 @@
                    uint32_t flashSize, uint16_t magic, uint16_t version);
  
  /**
-  * @brief Deinitializes the settings module (for one context).
-  *
-  * Cleans up resources or state associated with the context.
-  *
-  * @param ctx Pointer to the SettingsContext to deinitialize.
-  * @return int 0 on success, non-zero on failure.
-  */
- int settings_deinit(SettingsContext *ctx);
- 
- /**
   * @brief Save the current configuration settings to flash (for one context).
   *
   * @param ctx               Pointer to the SettingsContext.
@@ -186,31 +174,6 @@
   */
  SettingsConfigEntry *settings_find_entry(
      SettingsContext *ctx, const char *key);
- 
- /**
-  * @brief Update a boolean configuration entry.
-  *
-  * @param ctx   Pointer to the SettingsContext.
-  * @param key   The key of the entry.
-  * @param value The boolean value to set.
-  * @return int 0 on success, non-zero on failure (invalid key, or key not
-  * found).
-  */
- int settings_put_bool(SettingsContext *ctx,
-                       const char *key, bool value);
- 
- /**
-  * @brief Update a string configuration entry.
-  *
-  * @param ctx   Pointer to the SettingsContext.
-  * @param key   The key of the entry.
-  * @param value The string value to set.
-  * @return int 0 on success, non-zero on failure (invalid key, or key not
-  * found).
-  */
- int settings_put_string(SettingsContext *ctx,
-                         const char *key,
-                         const char *value);
  
  /**
   * @brief Update an integer configuration entry.

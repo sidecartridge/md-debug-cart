@@ -3,7 +3,9 @@
  * Author: Diego Parrilla Santamaría
  * Date: February 2025, February 2026
  * Copyright: 2025-2026 - GOODDATA LABS
- * Description: Debug cart emulation – minimal menu + address-bus capture
+ * Description: Debug cart emulation - minimal menu + address-bus capture
+ * Debug-cart hardware / PIO / DMA initialisation is based on:
+ * https://github.com/czietz/atari-debug-cart
  */
 
 #include "emul.h"
@@ -11,28 +13,18 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// included in the C file to avoid multiple definitions
-#include "target_firmware.h"  // Include the target firmware binary
-
 #include "aconfig.h"
+#include "blink.h"
 #include "constants.h"
 #include "debug.h"
-#include "display.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
-#include "memfunc.h"
 #include "pico/stdlib.h"
 #include "reset.h"
-#include "romemul.h"
-#include "select.h"
-#include "term.h"
 
-#define SLEEP_LOOP_MS 100
-#define MENU_DISPLAY_MS (SLEEP_LOOP_MS * 10)  // ~1 s to let the Atari show the menu
-
-enum {
-  APP_MODE_SETUP = 255  // Setup
-};
+#define DMA_ACTIVITY_BLINK_MS 20
+#define SELECT_DEBOUNCE_DELAY 20
+#define SELECT_LONG_RESET 10000
 
 // ---------------------------------------------------------------------------
 // Debug-cart capture configuration
@@ -54,54 +46,81 @@ static int debugDmaChannel = -1;
 static int debugSm = -1;
 
 // ---------------------------------------------------------------------------
-// SELECT button flags – set on core1, acted upon on core0
+// SELECT button state machine - polled and acted upon on core0
 // ---------------------------------------------------------------------------
 static volatile bool selectBoosterRequested = false;
 static volatile bool selectResetRequested = false;
+static bool selectRawState = false;
+static bool selectStableState = false;
+static bool selectDebounceActive = false;
+static absolute_time_t selectDebounceDeadline;
+static absolute_time_t selectPressStart;
+static bool dmaActivityBlinkActive = false;
+static absolute_time_t dmaActivityBlinkDeadline;
 
-static void onShortSelect(void) { selectBoosterRequested = true; }
-static void onLongSelect(void) { selectResetRequested = true; }
-
-// ---------------------------------------------------------------------------
-// Display helpers
-// ---------------------------------------------------------------------------
-static void showTitle(void) {
-  term_printString("\x1B"
-                   "E"
-                   "Debug Cart Mode - " RELEASE_VERSION "\n");
+static void emit_dma_activity_blink(void) {
+  blink_on();
+  dmaActivityBlinkActive = true;
+  dmaActivityBlinkDeadline = make_timeout_time_ms(DMA_ACTIVITY_BLINK_MS);
 }
 
-static void menu(void) {
-  showTitle();
-  term_printString("\n\n");
-  term_printString("Booting with debug cart enabled.\n\n");
-  term_printString("SHORT SELECT: Jump to Booster\n");
-  term_printString("LONG SELECT:  Reset device\n");
-  display_refresh();
+static void service_dma_activity_blink(void) {
+  if (dmaActivityBlinkActive &&
+      absolute_time_diff_us(get_absolute_time(), dmaActivityBlinkDeadline) <=
+          0) {
+    blink_off();
+    dmaActivityBlinkActive = false;
+  }
 }
 
-static void preinit(void) {
-  term_init();
-  term_clearScreen();
-  showTitle();
-  term_printString("\n\n");
-  term_printString("Starting debug cart mode...\n");
-  display_refresh();
+static bool select_detect_push(void) { return gpio_get(SELECT_GPIO) != 0; }
+
+static void select_configure_local(void) {
+  gpio_init(SELECT_GPIO);
+  gpio_set_dir(SELECT_GPIO, GPIO_IN);
+  gpio_set_pulls(SELECT_GPIO, false, true);
+  gpio_pull_down(SELECT_GPIO);
 }
 
-void failure(const char *message) {
-  term_init();
-  term_clearScreen();
-  showTitle();
-  term_printString("\n\n");
-  term_printString(message);
-  display_refresh();
-}
+static void select_poll(void) {
+  bool rawState = select_detect_push();
 
-// ---------------------------------------------------------------------------
-// Debug-cart hardware / PIO / DMA initialisation
-// (Based on https://github.com/czietz/atari-debug-cart/blob/master/debug.c)
-// ---------------------------------------------------------------------------
+  if (rawState != selectRawState) {
+    selectRawState = rawState;
+    selectDebounceActive = true;
+    selectDebounceDeadline = make_timeout_time_ms(SELECT_DEBOUNCE_DELAY);
+    return;
+  }
+
+  if (!selectDebounceActive ||
+      absolute_time_diff_us(get_absolute_time(), selectDebounceDeadline) > 0) {
+    return;
+  }
+
+  selectDebounceActive = false;
+  if (selectStableState == rawState) {
+    return;
+  }
+
+  selectStableState = rawState;
+  if (selectStableState) {
+    DPRINTF("SELECT button pushed\n");
+    selectPressStart = get_absolute_time();
+    return;
+  }
+
+  uint32_t pressDuration = to_ms_since_boot(get_absolute_time()) -
+                           to_ms_since_boot(selectPressStart);
+  DPRINTF("SELECT button released after %lu ms\n",
+          (unsigned long)pressDuration);
+  if (pressDuration >= SELECT_LONG_RESET) {
+    DPRINTF("Long press detected. Requesting reset\n");
+    selectResetRequested = true;
+  } else {
+    DPRINTF("Short press detected. Requesting booster jump\n");
+    selectBoosterRequested = true;
+  }
+}
 
 static void debugcart_init_hardware(void) {
   // Drive READ signal low to enable the external address-bus buffer
@@ -165,13 +184,11 @@ static void debugcart_init_dma(void) {
   // Source: MSB byte of the PIO RX FIFO.
   // With right-shift auto-push, the 8-bit sample occupies bits 31:24 of the
   // 32-bit FIFO word.  Adding +3 to the byte address reaches that MSB byte.
-  dma_channel_configure(debugDmaChannel, &c,
-                        debugBuffer,
+  dma_channel_configure(debugDmaChannel, &c, debugBuffer,
                         (uint8_t *)(&DEBUG_PIO->rxf[debugSm]) + 3,  // MSB byte
-                        DEBUG_DMA_SIZE,
-                        true /* start immediately */);
+                        DEBUG_DMA_SIZE, true /* start immediately */);
 
-  // Start the SM – it will wait for the first ROM3 falling edge
+  // Start the SM - it will wait for the first ROM3 falling edge
   pio_sm_set_enabled(DEBUG_PIO, debugSm, true);
 }
 
@@ -179,57 +196,36 @@ static void debugcart_init_dma(void) {
 // Main entry point
 // ---------------------------------------------------------------------------
 void emul_start(void) {
-  // 1. Copy the terminal firmware to RAM so the Atari can display our message
-  COPY_FIRMWARE_TO_RAM((uint16_t *)target_firmware, target_firmware_length);
+  stdio_init_all();
+  DPRINTF("Debug Cart Mode - %s\n", RELEASE_VERSION);
+  DPRINTF("Starting debug cart capture\n");
+  DPRINTF("SHORT SELECT: Jump to Booster\n");
+  DPRINTF("LONG SELECT: Reset device\n");
 
-  // 2. Initialise the ROM-emulator PIO / DMA (needed for the terminal display)
-  init_romemul(NULL, term_dma_irq_handler_lookup, false);
+  // Configure the SELECT button for same-core polling.
+  select_configure_local();
+  selectRawState = select_detect_push();
+  selectStableState = selectRawState;
+  selectDebounceActive = false;
 
-  // 3. Set up the display subsystem
-  display_setupU8g2();
+  blink_off();
 
-  // 4. Show the "please wait" splash, then the minimal debug-cart menu
-  preinit();
-  menu();
-
-  // 5. Configure and arm the SELECT button watcher on core1
-  select_configure();
-  select_coreWaitPush(onShortSelect, onLongSelect);
-
-// 6. Blink on
-#ifdef BLINK_H
-  blink_on();
-#endif
-
-  // 7. Let the Atari display the message for a moment before we switch modes
-  sleep_ms(MENU_DISPLAY_MS);
-
-  // 8. Disable the ROM-emulator DMA/IRQ (previous DMA must be stopped first)
-  romemul_disable();
-
-  // 9. Bring up the debug-cart capture pipeline
+  // Bring up the debug-cart capture pipeline
   debugcart_init_hardware();
   debugcart_init_pio();
   debugcart_init_dma();
 
-  // 10. Initialise USB-serial output so captured bytes reach the host
-  stdio_init_all();
-
-  // 11. Debug-capture loop
-  DPRINTF("Debug cart active – capturing ROM3 address-bus data.\n");
+  DPRINTF("Debug cart active - capturing ROM3 address-bus data.\n");
   uint32_t readidx = 0;
 
   while (1) {
-    // Handle SELECT-button requests (flags written by core1 callbacks)
+    select_poll();
+
+    // Handle SELECT-button requests
     if (selectBoosterRequested) {
-      select_coreWaitPushDisable();
-      settings_put_integer(aconfig_getContext(), ACONFIG_PARAM_MODE,
-                           APP_MODE_SETUP);
-      settings_save(aconfig_getContext(), true);
       reset_jump_to_booster();
     }
     if (selectResetRequested) {
-      select_coreWaitPushDisable();
       reset_device();
     }
 
@@ -239,16 +235,19 @@ void emul_start(void) {
         DEBUG_RING_SIZE;
 
     if (writeidx > readidx) {
+      emit_dma_activity_blink();
       fwrite(&debugBuffer[readidx], 1, writeidx - readidx, stdout);
       fflush(stdout);
       readidx = writeidx;
     } else if (writeidx < readidx) {
+      emit_dma_activity_blink();
       fwrite(&debugBuffer[readidx], 1, DEBUG_RING_SIZE - readidx, stdout);
       fwrite(&debugBuffer[0], 1, writeidx, stdout);
       fflush(stdout);
       readidx = writeidx;
     }
 
-    sleep_ms(SLEEP_LOOP_MS);
+    service_dma_activity_blink();
+    tight_loop_contents();
   }
 }

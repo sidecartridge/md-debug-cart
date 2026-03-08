@@ -11,13 +11,6 @@
 
 #include "hardware/vreg.h"
 
-// Common macros
-#define HEX_BASE 16
-#define DEC_BASE 10
-
-// Time macros
-#define SEC_TO_MS 1000
-
 // SELECT signal
 #define SELECT_GPIO 5  // GPIO signal for SELECT
 
@@ -26,32 +19,13 @@
 #define READ_ADDR_PIN_COUNT 16    // Number of GPIOs for the address
 #define READ_SIGNAL_GPIO_BASE 27  // GPIO signal for READ
 #define READ_SIGNAL_PIN_COUNT 1   // Number of GPIOs for the READ signal
-
-// Write data to the bus
-#define WRITE_DATA_GPIO_BASE \
-  (READ_ADDR_GPIO_BASE)  // Start of the GPIOs for the data to write
-#define WRITE_DATA_PIN_COUNT \
-  (READ_ADDR_PIN_COUNT)  // Number of GPIOs for the data
-#define WRITE_SIGNAL_GPIO_BASE \
-  (READ_SIGNAL_GPIO_BASE + 1)  // GPIO signal for WRITE
-#define WRITE_SIGNAL_PIN_COUNT 1
+#define ROM3_GPIO 26              // GPIO signal for ROM3 accesses
 
 // FLASH and RAM sections constants.
 #define ROM_BANKS 2  // Number of ROM banks to emulate
-#define FLASH_ROM_LOAD_OFFSET \
-  0x0  // Offset start in FLASH reserved for ROMs. Survives a reset or
-       // poweroff. If 0x0, it means that the 128KB of FLASH are used for the
-       // ROMs. If 0x10000, it means that the first 64KB of FLASH are used for
-       // the ROMs. The second 64KB of FLASH is not in use (ROM3 not used).
-#define FLASH_ROM4_LOAD_OFFSET FLASH_ROM_LOAD_OFFSET  // First 64KB block
-#define FLASH_ROM3_LOAD_OFFSET \
-  (FLASH_ROM_LOAD_OFFSET + 0x10000)              // Second 64KB block
 #define ROM_SIZE_BYTES 0x10000                   // 64KBytes
-#define ROM_SIZE_WORDS (ROM_SIZE_BYTES / 2)      // 32KWords
-#define ROM_SIZE_LONGWORDS (ROM_SIZE_BYTES / 4)  // 16KLongWords
 
 // Frequency constants.
-#define SAMPLE_DIV_FREQ (1.f)         // Sample frequency division factor.
 #define RP2040_CLOCK_FREQ_KHZ 225000  // Clock frequency in KHz (225MHz).
 
 // Voltage constants.
@@ -71,16 +45,8 @@
 #define CURRENT_APP_UUID_KEY "PLACEHOLDER"
 #endif
 
-// Time macros
-#define GET_CURRENT_TIME() \
-  (((uint64_t)timer_hw->timerawh) << 32u | timer_hw->timerawl)
-#define GET_CURRENT_TIME_INTERVAL_MS(start) \
-  (uint32_t)((GET_CURRENT_TIME() - start) / \
-             (((uint32_t)RP2040_CLOCK_FREQ_KHZ) / 1000))
-
 // NOLINTBEGIN(readability-identifier-naming)
 extern unsigned int __flash_binary_start;
-extern unsigned int _rom_temp_start;
 extern unsigned int _booster_app_flash_start;
 extern unsigned int _config_flash_start;
 extern unsigned int _global_lookup_flash_start;

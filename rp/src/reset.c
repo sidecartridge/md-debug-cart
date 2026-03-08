@@ -13,15 +13,3 @@ void reset_device() {
   }
   DPRINTF("You should never reach this point\n");
 }
-
-void reset_deviceAndEraseFlash() {
-  // Erase the settings
-  DPRINTF("Erasing the flash memory\n");
-  settings_erase(gconfig_getContext());
-  DPRINTF("Erasing the app lookup table\n");
-  sleep_ms(SEC_TO_MS);
-
-  // Reset the device
-  DPRINTF("Resetting the device\n");
-  reset_device();
-}

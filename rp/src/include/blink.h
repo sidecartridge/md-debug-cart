@@ -15,7 +15,6 @@
 #include "pico/stdlib.h"
 
 #ifdef CYW43_WL_GPIO_LED_PIN
-#include "network.h"
 #include "pico/cyw43_arch.h"
 #endif
 
@@ -52,15 +51,5 @@ void blink_off();
  * GPIO pin. If not defined, it defaults to using `PICO_DEFAULT_LED_PIN`.
  */
 void blink_on();
-
-/**
- * @brief Toggles the blink state and updates the blink status accordingly.
- *
- * This function toggles the global variable `blink_state` between true and
- * false. If `blink_state` is true, it calls the `blink_on()` function to turn
- * on the blink. If `blink_state` is false, it calls the `blink_off()` function
- * to turn off the blink.
- */
-void blink_toogle();
 
 #endif  // BLINK_H

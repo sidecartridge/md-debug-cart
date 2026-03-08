@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Get the absolute path of the current script
-SCRIPT_DIR=$(dirname "$(realpath "$0")") 
-
 # Ensure all required arguments are provided
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "Usage: $0 <board_type> <build_type> <app_uuid_key>"
@@ -10,10 +7,9 @@ if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     exit 1
 fi
 
-# Copy the version.txt to each project
-echo "Copy version.txt to each project"
+# Copy the version.txt to the RP project
+echo "Copy version.txt to the RP project"
 cp version.txt rp/
-cp version.txt target/
 
 # Display the version information
 export VERSION=$(cat version.txt)
@@ -35,13 +31,6 @@ echo "App UUID Key: $APP_UUID_KEY"
 echo "Delete previous dist directory"
 rm -rf dist
 mkdir dist
-
-# Build the project in the target architecture
-echo "Building target project"
-cd target/atarist
-./build.sh "$SCRIPT_DIR/target/atarist" release
-cd ../..
-echo "Done building target project"
 
 # Build the rp project in the RP architecture
 echo "Building rp project"

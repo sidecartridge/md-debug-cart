@@ -4,34 +4,16 @@
 cd ..
 
 # Install SDK needed for building
-git submodule init
-git submodule update --init --recursive
+git submodule update --init pico-sdk
 
 # Pin the building versions
-echo "Pinning the SDK versions..."
+echo "Pinning the SDK version..."
 cd pico-sdk
 git checkout tags/2.2.0
 cd ..
 
-echo "Pinning the Extras SDK versions..."
-cd pico-extras
-git checkout tags/sdk-2.2.0
-cd ..
-
-echo "Pinning the FatFs SDK versions..."
-cd fatfs-sdk
-#git checkout v3.5.1
-git checkout 6bdb39f96fe8b897aff12bf3416e32515792e318
-cd ..
-
-# This is a dirty hack to guarantee that I can use the fatfs-sdk submodule
-echo "Patching the fatfs-sdk... to use chmod"
-sed -i.bak 's/#define FF_USE_CHMOD[[:space:]]*0/#define FF_USE_CHMOD 1/' fatfs-sdk/src/include/ffconf.h && mv fatfs-sdk/src/include/ffconf.h.bak .
-
 # Set the environment variables of the SDKs
 export PICO_SDK_PATH=$PWD/pico-sdk
-export FATFS_SDK_PATH=$PWD/fatfs-sdk
-export PICO_EXTRAS_PATH=$PWD/pico-extras
 
 # Return to booster path
 cd rp

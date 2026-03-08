@@ -1,11 +1,67 @@
-# SidecarTridge Multi-device Microfirmware App template
+# SidecarTridge Debug Cart
 
-This is the template to create a Microfirmware app for the SidecarTridge Multidevice-app for Atari ST computers.
+Repurposes the SidecarTridge Multi-device as a debug-output device for Atari ST, STE, Mega ST, and Mega STE software through the cartridge port. It captures debug output by reading from the cartridge address space and forwards it to a USB serial connection.
 
-# ⚠️ ATTENTION! READ THIS FIRST
+## 🚀 Installation
 
-The process for creating a microfirmware app from this template is now documented in the official [SidecarTridge Multi-device documentation](https://docs.sidecartridge.com/sidecartridge-multidevice/programming/). To avoid inconsistencies and outdated information, we've centralized the instructions there. Please refer to the official documentation for the latest guidance.
+To install the Debug Cart app on your SidecarTridge Multi-device:
 
-## License
+1. Launch the **Booster App** on your SidecarTridge Multi-device.
+2. Open the Booster web interface.
+3. In the **Apps** tab, select **"Debug Cart"** from the list of available apps.
+4. Click **"Download"** to install the app to your SidecarTridge’s microSD card.
+5. Once installed, select the app and click **"Launch"** to activate it.
 
-The source code of the project is licensed under the GNU General Public License v3.0. The full license is accessible in the [LICENSE](LICENSE) file. 
+After launching, the app will automatically run every time your Atari computer is powered on.
+
+## 🧠 How It Works
+
+Debug output is transmitted by reading from the cartridge address space at `0xFBxxxx`. Characters are encoded into address lines `A8-A1`. For example, the following code snippet sends the character `A`:
+
+```c
+#define CARTRIDGE_ROM3 0xFB0000ul
+(void)(*((volatile short*)(CARTRIDGE_ROM3 + ('A'<<1))));
+```
+
+To receive the debug output, a USB serial port is exposed by the Raspberry Pi Pico on the SidecarTridge Multi-device. On modern operating systems, no special drivers are required. Any terminal program that supports serial ports can be used. Because this is not a physical UART, the configured baud rate does not matter.
+
+To avoid ground current loops, it is recommended, but not mandatory, to connect a battery-powered device such as a laptop running on battery to the USB port of the Pico when the SidecarTridge Multi-device is plugged into the Atari.
+
+## ✨ Benefits
+
+- It is fast. Accessing the cartridge port only takes a few CPU cycles, so the timing impact is much lower than with MFP serial output or on-screen debug output.
+- No hardware initialization is needed. Cartridge-port access is available without prior setup.
+
+## 🕹️ Runtime Behavior
+
+The firmware starts capturing debug bytes as soon as the app is launched and forwards them to the USB serial connection.
+
+### 🔁 System Reset Behavior
+
+The app is resistant to Atari system resets. Pressing the reset button on the Atari does not stop the firmware.
+
+### 🔌 Power Cycling
+
+When you power off and on your Atari, the app starts again with the SidecarTridge Multi-device.
+
+### ❌ SELECT Button Behavior
+
+A short press on the SELECT button jumps back to the Booster menu. A long press resets the device.
+
+## 🛠️ Setting Up the Development Environment
+
+This project is based on the [SidecarTridge Multi-device Microfirmware App Template](https://github.com/sidecartridge/md-microfirmware-template).  
+To set up your development environment, please follow the instructions provided in the [official documentation](https://docs.sidecartridge.com/sidecartridge-multidevice/programming/).
+
+## 🙏 Acknowledgements
+
+This project is a direct migration of the Atari ST Debug Cart by and based on the work of [Christian Zietz](https://github.com/czietz/atari-debug-cart). The migration was done with OpenAI 5.3-Codex, so the implementation remains closely aligned with the original code, with only the changes needed to fit the SidecarTridge Multi-device microfirmware layout. The original code is licensed under the GNU General Public License v3.0, and this project continues under the same terms.
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0**.  
+See [LICENSE](LICENSE) for full terms.
+
+## 🤝 Contributing
+
+Made with ❤️ by [SidecarTridge](https://sidecartridge.com)

@@ -282,21 +282,6 @@ int settings_init(SettingsContext *ctx,
   return (error == 0 ? (int)ctx->configData.count : error);
 }
 
-int settings_deinit(SettingsContext *ctx) {
-  if (!ctx) return -1;
-
-  // Reset the entire structure
-  if (ctx->configData.entries) {
-    free(ctx->configData.entries);
-    ctx->configData.entries = NULL;
-  }
-  ctx->configData.count = 0;
-  ctx->flashSettingsSize = SETTINGS_DEFAULT_FLASH_SIZE;
-  ctx->flashSettingsOffset = 0;
-
-  return 0;
-}
-
 int __not_in_flash_func(settings_save)(SettingsContext *ctx,
                                        bool disable_interrupts) {
   if (!ctx) return -1;
@@ -424,24 +409,6 @@ static int settingsUpdateEntry(SettingsContext *ctx, const char *key,
   }
   DPRINTF("Key %s not found (cannot update).\n", key);
   return -1;
-}
-
-int settings_put_bool(SettingsContext *ctx, const char *key, bool value) {
-  return settingsUpdateEntry(ctx, key, SETTINGS_TYPE_BOOL,
-                             value ? "true" : "false");
-}
-
-int settings_put_string(SettingsContext *ctx,
-                        const char key[SETTINGS_MAX_KEY_LENGTH],
-                        const char *value) {
-  if (!value) {
-    DPRINTF("Error: NULL value for string key %s\n", key);
-    return -1;
-  }
-  char buffer[SETTINGS_MAX_VALUE_LENGTH];
-  strncpy(buffer, value, SETTINGS_MAX_VALUE_LENGTH - 1);
-  buffer[SETTINGS_MAX_VALUE_LENGTH - 1] = '\0';
-  return settingsUpdateEntry(ctx, key, SETTINGS_TYPE_STRING, buffer);
 }
 
 int settings_put_integer(SettingsContext *ctx, const char *key, int value) {
