@@ -27,6 +27,15 @@ To receive the debug output, a USB serial port is exposed by the Raspberry Pi Pi
 
 To avoid ground current loops, it is recommended, but not mandatory, to connect a battery-powered device such as a laptop running on battery to the USB port of the Pico when the SidecarTridge Multi-device is plugged into the Atari.
 
+### 🐾 Debug Cart in the wild: EmuTOS
+
+The [EmuTOS](https://emutos.sourceforge.io/) operating system for Atari computers includes built-in support for this debug output method. To enable it, set the `CARTRIDGE_DEBUG_PRINT` macro to `1` in the EmuTOS configuration and recompile the OS.
+
+If you would rather not compile the operating system yourself, you can use the [EmuTOS Building Tool by Thorsten Otto](https://tho-otto.de/emutos/) and enable the `CARTRIDGE_DEBUG_PRINT` option in the configuration.
+
+Then, open a terminal program on your computer, connect to the USB serial port exposed by the SidecarTridge Multi-device, and power on your Atari. You should see debug output from EmuTOS in the terminal.
+
+
 ## ✨ Benefits
 
 - It is fast. Accessing the cartridge port only takes a few CPU cycles, so the timing impact is much lower than with MFP serial output or on-screen debug output.
