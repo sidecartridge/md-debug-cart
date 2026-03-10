@@ -156,8 +156,8 @@ static void debugcart_init_pio(void) {
   debugSm = pio_claim_unused_sm(DEBUG_PIO, true);
 
   pio_sm_config c = pio_get_default_sm_config();
-  // Address pin base: READ_ADDR_GPIO_BASE is A1 on the SidecarTridge board
-  sm_config_set_in_pins(&c, READ_ADDR_GPIO_BASE);
+  // GPIO6 is A0 on this board, so start at A1 for debug-byte capture.
+  sm_config_set_in_pins(&c, READ_ADDR_GPIO_BASE + 1);
   sm_config_set_wrap(&c, offset, offset + DEBUG_NUM_PIO_INSTR - 1);
   sm_config_set_clkdiv(&c, 1);
   // Right-shift, autopush after 8 bits; data lands in MSB of the FIFO word
