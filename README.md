@@ -25,7 +25,9 @@ Debug output is transmitted by reading from the cartridge address space at `0xFB
 
 To receive the debug output, a USB serial port is exposed by the Raspberry Pi Pico on the SidecarTridge Multi-device. On modern operating systems, no special drivers are required. Any terminal program that supports serial ports can be used. Because this is not a physical UART, the configured baud rate does not matter.
 
-To avoid ground current loops, it is recommended, but not mandatory, to connect a battery-powered device such as a laptop running on battery to the USB port of the Pico when the SidecarTridge Multi-device is plugged into the Atari.
+When using USB debug output, connecting the Pico to a laptop running on battery power can help avoid ground loop issues.
+
+This is usually not required, but may improve stability if you see unreliable serial output.
 
 ### 🐾 Debug Cart in the wild: EmuTOS
 
