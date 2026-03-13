@@ -1,7 +1,7 @@
 {
   "uuid": "<APP_UUID>",
   "name": "Debug Cart",
-  "description": "Repurposes the SidecarTridge Multi-device as a debug-output device for Atari ST software through the cartridge port.  <a target='_blank' href='https://docs.sidecartridge.com/sidecartridge-multidevice/microfirmwares/debug-cart/'>Learn more</a>",
+  "description": "Repurposes the SidecarTridge Multi-device as a debug-output device for Atari ST software through the cartridge port forwarding to the USB serial port  <a target='_blank' href='https://docs.sidecartridge.com/sidecartridge-multidevice/microfirmwares/debug-cart/'>Learn more</a>",
   "image": "https://placehold.co/256x256/png",
   "tags": [
     "Development"
