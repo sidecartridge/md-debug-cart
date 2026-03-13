@@ -3,13 +3,14 @@
 # Down to main path
 cd ..
 
-# Install SDK needed for building
-git submodule update --init pico-sdk
+# Install the SDK and all nested dependencies needed for Pico W builds.
+git submodule update --init --recursive pico-sdk
 
 # Pin the building versions
 echo "Pinning the SDK version..."
 cd pico-sdk
 git checkout tags/2.2.0
+git submodule update --init --recursive
 cd ..
 
 # Set the environment variables of the SDKs
