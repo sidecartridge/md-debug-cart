@@ -1,6 +1,14 @@
+<div align="center">
+
+<img src="icon.png" alt="SidecarTridge Debug Cart" width="180" />
+
 # SidecarTridge Debug Cart
 
+</div>
+
 Repurposes the SidecarTridge Multi-device as a debug-output device for Atari ST, STE, Mega ST, and Mega STE software through the cartridge port. It captures debug output by reading from the cartridge address space and forwards it to a USB serial connection.
+
+> 🛒 **Get the hardware:** [SidecarTridge Multi-device](https://sidecartridge.com/products/sidecartridge-multidevice-atari-st/)
 
 ## 🚀 Installation
 
